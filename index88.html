@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calzy Enterprise ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee; --dark: #1e293b; --success: #10b981; 
+            --danger: #ef4444; --warning: #f59e0b; --bg: #f8fafc;
+        }
+        * { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--dark); padding-bottom: 90px; }
+        
+        /* Header & Nav */
+        header { background: var(--dark); color: white; padding: 15px; text-align: center; font-weight: 700; font-size: 1.2rem; }
+        .nav-bar { 
+            background: white; display: flex; overflow-x: auto; padding: 10px; 
+            position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.05); gap: 8px;
+        }
+        .nav-link { 
+            padding: 10px 15px; cursor: pointer; border-radius: 12px; white-space: nowrap;
+            font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; color: #64748b;
+        }
+        .nav-link.active { background: var(--primary); color: white; }
+        .nav-link svg { width: 18px; height: 18px; }
+
+        /* Dashboard Widgets */
+        .grid-widgets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 15px; }
+        .widget { 
+            background: white; padding: 15px; border-radius: 20px; border: 1px solid #e2e8f0;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .widget h4 { font-size: 20px; color: var(--primary); }
+        .widget span { font-size: 11px; color: #94a3b8; font-weight: 700; }
+
+        /* Content Sections */
+        main { padding: 0 15px; }
+        .section { display: none; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; background: #fdfdfd; }
+        .btn { padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-p { background: var(--primary); color: white; }
+
+        /* POS Style */
+        .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+        .p-card { 
+            background: white; padding: 15px 10px; border-radius: 15px; border: 1.5px solid #f1f5f9;
+            text-align: center; cursor: pointer; position: relative;
+        }
+        .p-card:active { transform: scale(0.95); }
+        .badge { position: absolute; top: 5px; right: 5px; background: var(--danger); color: white; font-size: 10px; padding: 2px 6px; border-radius: 5px; }
+
+        /* Bill Footer */
+        .bill-footer { 
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--dark); 
+            color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center;
+            border-radius: 25px 25px 0 0; z-index: 2000;
+        }
+
+        /* Invoice Print Style (Hidden in Screen) */
+        #invoice-print { display: none; width: 80mm; padding: 10px; background: white; color: black; font-family: 'Courier New', Courier, monospace; }
+        @media print {
+            body * { display: none; }
+            #invoice-print { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<header id="display-name">Calzy Enterprise ERP</header>
+
+<div class="nav-bar">
+    <div class="nav-link active" onclick="tab(0,'dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>الرئيسية</div>
+    <div class="nav-link" onclick="tab(1,'pos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 15h10"></path></svg>الكاشير</div>
+    <div class="nav-link" onclick="tab(2,'stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>المخزن</div>
+    <div class="nav-link" onclick="tab(3,'reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line><line x1="18" y1="20" x2="18" y2="10"></line></svg>الأرباح</div>
+    <div class="nav-link" onclick="tab(4,'settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>الإعدادات</div>
+</div>
+
+<main>
+    <div id="dash" class="section active">
+        <div class="grid-widgets">
+            <div class="widget"><span>مبيعات اليوم</span><h4 id="w-sales">0</h4></div>
+            <div class="widget"><span>صافي الربح</span><h4 id="w-profit">0</h4></div>
+            <div class="widget"><span>إجمالي المخزن</span><h4 id="w-stock">0</h4></div>
+            <div class="widget"><span>أوردرات اليوم</span><h4 id="w-count">0</h4></div>
+        </div>
+        <div id="low-stock-alerts"></div>
+    </div>
+
+    <div id="pos" class="section">
+        <div class="card">
+            <input type="text" id="pos-search" placeholder="بحث عن منتج..." oninput="renderPOS()">
+            <div class="pos-grid" id="pos-grid"></div>
+        </div>
+    </div>
+
+    <div id="stock" class="section">
+        <div class="card">
+            <h3>📦 إضافة صنف جديد</h3>
+            <input type="text" id="p-name" placeholder="اسم الصنف">
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="p-cost" placeholder="سعر الجملة">
+                <input type="number" id="p-sell" placeholder="سعر البيع">
+            </div>
+            <input type="number" id="p-qty" placeholder="الكمية">
+            <button class="btn btn-p" onclick="addStock()">إضافة للمخزن</button>
+        </div>
+        <div class="card" id="stock-list"></div>
+    </div>
+
+    <div id="reports" class="section">
+        <div class="card">
+            <h3>📊 تقرير الأرباح اليومي</h3>
+            <div id="daily-reports-list"></div>
+        </div>
+    </div>
+
+    <div id="settings" class="section">
+        <div class="card">
+            <h3>⚙️ إعدادات الفاتورة والمحل</h3>
+            <input type="text" id="set-name" placeholder="اسم المطعم / المحل">
+            <input type="text" id="set-phone" placeholder="رقم التواصل">
+            <textarea id="set-msg" placeholder="ملاحظة أسفل الفاتورة (مثلاً: شرفتنا بزيارتك)"></textarea>
+            <button class="btn btn-p" onclick="saveSettings()">حفظ الإعدادات</button>
+        </div>
+        <button class="btn" style="background:#64748b; color:white; margin-top:10px;" onclick="exportData()">📥 تصدير نسخة احتياطية</button>
+    </div>
+</main>
+
+<div class="bill-footer" id="bill-bar">
+    <div id="bill-info">الإجمالي: 0.00</div>
+    <button class="btn btn-p" style="width:auto; padding:8px 20px;" onclick="showCheckoutModal()">دفع وطباعة 🧾</button>
+</div>
+
+<div id="invoice-print">
+    <center>
+        <h2 id="inv-name">اسم المحل</h2>
+        <p id="inv-phone">0123456789</p>
+        <p>---------------------------</p>
+    </center>
+    <div id="inv-items"></div>
+    <p>---------------------------</p>
+    <b>الإجمالي: <span id="inv-total">0</span> EGP</b>
+    <p id="inv-note-display"></p>
+    <center>
+        <p id="inv-footer-msg"></p>
+        <small id="inv-date"></small>
+    </center>
+</div>
+
+<script>
+    let inventory = JSON.parse(localStorage.getItem('calzy_v5_stock')) || [];
+    let sales = JSON.parse(localStorage.getItem('calzy_v5_sales')) || [];
+    let settings = JSON.parse(localStorage.getItem('calzy_v5_settings')) || { name: 'مطعم كالزي', phone: '0123xxx', msg: 'شكراً لزيارتكم' };
+    let cart = [];
+
+    function tab(idx, id) {
+        document.querySelectorAll('.section, .nav-link').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-link')[idx].classList.add('active');
+        renderAll();
+    }
+
+    function saveSettings() {
+        settings = {
+            name: document.getElementById('set-name').value,
+            phone: document.getElementById('set-phone').value,
+            msg: document.getElementById('set-msg').value
+        };
+        localStorage.setItem('calzy_v5_settings', JSON.stringify(settings));
+        alert("تم الحفظ ✅");
+        location.reload();
+    }
+
+    function addStock() {
+        const name = document.getElementById('p-name').value;
+        const cost = parseFloat(document.getElementById('p-cost').value);
+        const sell = parseFloat(document.getElementById('p-sell').value);
+        const qty = parseInt(document.getElementById('p-qty').value);
+        if(!name || isNaN(sell)) return;
+        inventory.push({ id: Date.now(), name, cost, sell, qty });
+        save();
+        document.querySelectorAll('#stock input').forEach(i => i.value = '');
+    }
+
+    function save() {
+        localStorage.setItem('calzy_v5_stock', JSON.stringify(inventory));
+        localStorage.setItem('calzy_v5_sales', JSON.stringify(sales));
+        renderAll();
+    }
+
+    function renderAll() {
+        document.getElementById('display-name').innerText = settings.name;
+        renderDash();
+        renderPOS();
+        renderStockList();
+        renderDailyReports();
+        // Load settings to inputs
+        document.getElementById('set-name').value = settings.name;
+        document.getElementById('set-phone').value = settings.phone;
+        document.getElementById('set-msg').value = settings.msg;
+    }
+
+    function renderDash() {
+        const today = new Date().toLocaleDateString('en-CA');
+        const todaySales = sales.filter(s => s.date === today);
+        const total = todaySales.reduce((sum, s) => sum + s.total, 0);
+        const profit = todaySales.reduce((sum, s) => sum + s.profit, 0);
+        const stockVal = inventory.reduce((sum, p) => sum + (p.cost * p.qty), 0);
+
+        document.getElementById('w-sales').innerText = total.toFixed(2);
+        document.getElementById('w-profit').innerText = profit.toFixed(2);
+        document.getElementById('w-count').innerText = todaySales.length;
+        document.getElementById('w-stock').innerText = stockVal.toFixed(2);
+
+        const alerts = document.getElementById('low-stock-alerts');
+        alerts.innerHTML = "";
+        inventory.filter(p => p.qty <= 5).forEach(p => {
+            alerts.innerHTML += `<div class="card" style="border-right:5px solid var(--danger); padding:10px; font-size:12px;">⚠️ <b>${p.name}</b> شطب (المتاح: ${p.qty})</div>`;
+        });
+    }
+
+    function renderPOS() {
+        const grid = document.getElementById('pos-grid');
+        const search = document.getElementById('pos-search').value.toLowerCase();
+        grid.innerHTML = "";
+        inventory.filter(p => p.name.toLowerCase().includes(search)).forEach(p => {
+            grid.innerHTML += `
+                <div class="p-card" onclick="addToCart(${p.id})">
+                    ${p.qty <= 3 ? `<span class="badge">ناقص</span>` : ''}
+                    <b>${p.name}</b><br><small style="color:var(--primary)">${p.sell} EGP</small>
+                </div>`;
+        });
+    }
+
+    function addToCart(id) {
+        const p = inventory.find(i => i.id === id);
+        if(p.qty <= 0) return alert("المنتج غير متوفر!");
+        const inCart = cart.find(c => c.id === id);
+        if(inCart) inCart.qty++; else cart.push({...p, qty: 1});
+        updateBillUI();
+    }
+
+    function updateBillUI() {
+        const bar = document.getElementById('bill-bar');
+        const total = cart.reduce((sum, i) => sum + (i.sell * i.qty), 0);
+        document.getElementById('bill-info').innerText = "الإجمالي: " + total.toFixed(2);
+        bar.style.display = cart.length > 0 ? 'flex' : 'none';
+    }
+
+    function showCheckoutModal() {
+        const note = prompt("أضف ملاحظة للفاتورة (اختياري):", "");
+        checkout(note);
+    }
+
+    function checkout(orderNote) {
+        const totalSell = cart.reduce((sum, i) => sum + (i.sell * i.qty), 0);
+        const totalCost = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
+        const date = new Date().toLocaleDateString('en-CA');
+
+        // تحديث الفاتورة للطباعة
+        document.getElementById('inv-name').innerText = settings.name;
+        document.getElementById('inv-phone').innerText = settings.phone;
+        document.getElementById('inv-footer-msg').innerText = settings.msg;
+        document.getElementById('inv-total').innerText = totalSell.toFixed(2);
+        document.getElementById('inv-date').innerText = new Date().toLocaleString();
+        document.getElementById('inv-note-display').innerText = orderNote ? "ملاحظة: " + orderNote : "";
+        
+        let itemsHTML = "";
+        cart.forEach(c => {
+            itemsHTML += `<div style="display:flex; justify-content:space-between"><span>${c.name} x${c.qty}</span> <span>${(c.sell * c.qty).toFixed(2)}</span></div>`;
+            const p = inventory.find(s => s.id === c.id);
+            p.qty -= c.qty;
+        });
+        document.getElementById('inv-items').innerHTML = itemsHTML;
+
+        // حفظ البيانات
+        sales.push({ date, total: totalSell, profit: totalSell - totalCost, note: orderNote });
+        
+        // محاكاة الطباعة
+        window.print();
+
+        cart = [];
+        updateBillUI();
+        save();
+    }
+
+    function renderStockList() {
+        const list = document.getElementById('stock-list');
+        list.innerHTML = "<h3>قائمة البضاعة</h3>" + inventory.map((p, i) => `
+            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
+                <span>${p.name} (${p.qty})</span>
+                <button onclick="inventory.splice(${i},1); save()" style="color:red; background:none; border:none;">حذف</button>
+            </div>
+        `).join("");
+    }
+
+    function renderDailyReports() {
+        const daily = {};
+        sales.forEach(s => {
+            if(!daily[s.date]) daily[s.date] = { total: 0, profit: 0 };
+            daily[s.date].total += s.total;
+            daily[s.date].profit += s.profit;
+        });
+        const list = document.getElementById('daily-reports-list');
+        list.innerHTML = Object.keys(daily).sort().reverse().map(date => `
+            <div class="card" style="margin-bottom:10px; padding:12px;">
+                <b>📅 ${date}</b><br>
+                <small>مبيعات: ${daily[date].total.toFixed(2)} | أرباح: <span style="color:green">${daily[date].profit.toFixed(2)}</span></small>
+            </div>
+        `).join("");
+    }
+
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({inventory, sales, settings}));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", `calzy_backup_${Date.now()}.json`);
+        dlAnchor.click();
+    }
+
+    renderAll();
+</script>
+</body>
+</html>
